@@ -24,12 +24,7 @@ class Settings(BaseSettings):
         )
 
     # ── Redis ─────────────────────────────────────────────────────────────────
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-
-    @property
-    def REDIS_URL(self) -> str:
-        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     # ── Auth ──────────────────────────────────────────────────────────────────
     SECRET_KEY: str = "change_me"
