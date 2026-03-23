@@ -1,0 +1,63 @@
+# ================================
+# Flappit .gitignore
+# ================================
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.eggs/
+*.egg-info/
+*.egg
+dist/
+build/
+venv/
+.venv/
+env/
+ENV/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Node / Expo (frontend)
+node_modules/
+.expo/
+web-build/
+
+# pytest
+.pytest_cache/
+
+# Misc
+*.swp
+*.sak
+.idea/
