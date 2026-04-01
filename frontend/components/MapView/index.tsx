@@ -10,6 +10,9 @@ import { Pin } from '@/lib/api'
 interface Props {
   pins: Pin[]
   onMapTap: (lat: number, lng: number) => void
+  onSavePin?: (lat: number, lng: number, title: string, color: string) => void
+  onUpdatePin?: (pinId: string, title: string, color: string) => void
+  onDeletePin?: (pinId: string) => void
 }
 
 export default function FlappitMap({ pins, onMapTap }: Props) {

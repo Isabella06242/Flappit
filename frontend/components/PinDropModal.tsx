@@ -31,16 +31,22 @@ const PLATFORMS = [
       `https://www.dianping.com/search/keyword/0/0/${encodeURIComponent(q)}`,
   },
   {
-    name: '马蜂窝',
-    emoji: '🐝',
-    url: (q: string) =>
-      `https://www.mafengwo.cn/search/q.php?q=${encodeURIComponent(q)}`,
-  },
-  {
     name: '抖音',
     emoji: '🎵',
     url: (q: string) =>
       `https://www.douyin.com/search/${encodeURIComponent(q)}`,
+  },
+  {
+    name: 'TikTok',
+    emoji: '🎬',
+    url: (q: string) =>
+      `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`,
+  },
+  {
+    name: 'Instagram',
+    emoji: '📸',
+    url: (q: string) =>
+      `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ''))}`,
   },
   {
     name: 'Google Maps',
@@ -49,16 +55,22 @@ const PLATFORMS = [
       `https://www.google.com/maps/search/${encodeURIComponent(q)}`,
   },
   {
-    name: 'TripAdvisor',
-    emoji: '🦉',
+    name: 'Yelp',
+    emoji: '⭐',
     url: (q: string) =>
-      `https://www.tripadvisor.com/Search?q=${encodeURIComponent(q)}`,
+      `https://www.yelp.com/search?find_desc=${encodeURIComponent(q)}`,
   },
   {
-    name: 'Instagram',
-    emoji: '📸',
+    name: 'Tabelog',
+    emoji: '🍱',
     url: (q: string) =>
-      `https://www.instagram.com/explore/tags/${encodeURIComponent(q.replace(/\s+/g, ''))}`,
+      `https://tabelog.com/en/search/?vs=1&sa=${encodeURIComponent(q)}&sw=${encodeURIComponent(q)}`,
+  },
+  {
+    name: '马蜂窝',
+    emoji: '🐝',
+    url: (q: string) =>
+      `https://www.mafengwo.cn/search/q.php?q=${encodeURIComponent(q)}`,
   },
 ]
 

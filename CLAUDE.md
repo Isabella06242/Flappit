@@ -43,3 +43,16 @@ Only commit when Isa says so. When asked to commit:
 - Keep code readable and well-commented
 - Mobile-first thinking always
 - When in doubt, ask Isa ✨
+
+---
+
+## Deployment Checklist
+When deploying frontend+backend apps:
+1. Verify all env vars are available at BUILD TIME for Vercel/static frontends (not just runtime)
+2. Check CORS origins match the actual deployed frontend URL
+3. Confirm Redis/database connection strings use the external/public URL, not internal network URLs
+4. Test auth flows end-to-end after deployment, not just health checks
+5. For Vercel: `EXPO_PUBLIC_*` vars must be set BEFORE build, not just in runtime settings
+
+## Debugging Principles
+When debugging deployment issues, diagnose the FULL chain (DNS → server → CORS → auth → frontend) before proposing fixes. Do not fix issues one-at-a-time in isolation.

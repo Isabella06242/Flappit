@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { useTrip } from '@/hooks/useTrips'
-import { usePins, useCreatePin } from '@/hooks/usePins'
+import { usePins, useCreatePin, useUpdatePin, useDeletePin } from '@/hooks/usePins'
 import FlappitMap from '@/components/MapView'
 import PinDropModal from '@/components/PinDropModal'
 import AiPanel from '@/components/AiPanel'
@@ -32,6 +32,8 @@ export default function TripScreen() {
   const { data: trip, isLoading: tripLoading } = useTrip(id)
   const { data: pins = [], isLoading: pinsLoading } = usePins(id)
   const createPin = useCreatePin(id)
+  const updatePin = useUpdatePin(id)
+  const deletePin = useDeletePin(id)
 
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [aiOpen, setAiOpen] = useState(false)
@@ -76,7 +78,13 @@ export default function TripScreen() {
 
   return (
     <View style={styles.container}>
-      <FlappitMap pins={pins} onMapTap={handleMapTap} />
+      <FlappitMap
+        pins={pins}
+        onMapTap={handleMapTap}
+        onSavePin={(lat, lng, title, color) => createPin.mutate({ title, lat, lng, color })}
+        onUpdatePin={(pinId, title, color) => updatePin.mutate({ pinId, data: { title, color } })}
+        onDeletePin={(pinId) => deletePin.mutate(pinId)}
+      />
 
       <PinDropModal
         visible={!!pendingCoords}

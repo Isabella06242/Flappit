@@ -17,6 +17,15 @@ export function useCreatePin(tripId: string) {
   })
 }
 
+export function useUpdatePin(tripId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ pinId, data }: { pinId: string; data: { title?: string; color?: string } }) =>
+      pinsApi.update(tripId, pinId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pins', tripId] }),
+  })
+}
+
 export function useDeletePin(tripId: string) {
   const qc = useQueryClient()
   return useMutation({
