@@ -5,7 +5,7 @@
  */
 import 'leaflet/dist/leaflet.css'
 import { useState, useRef, useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import { Pin } from '@/lib/api'
 
@@ -242,7 +242,7 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
 
   return (
     <div style={{ height: '100%', width: '100%', minHeight: 400, position: 'relative' }}>
-      <MapContainer center={[35, 105]} zoom={4} style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={[35, 105]} zoom={4} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=${process.env.EXPO_PUBLIC_MAPBOX_TOKEN}`}
@@ -252,6 +252,7 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
         <InvalidateSize />
         <MapController mapRef={mapRef} />
         <ClickHandler onMapClick={handleMapClick} />
+        <ZoomControl position="bottomright" />
 
         {pins.map((pin) => (
           <Marker
