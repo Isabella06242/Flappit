@@ -244,9 +244,10 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
     <div style={{ height: '100%', width: '100%', minHeight: 400, position: 'relative' }}>
       <MapContainer center={[35, 105]} zoom={4} style={{ height: '100%', width: '100%' }}>
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
+          attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=${process.env.EXPO_PUBLIC_MAPBOX_TOKEN}`}
+          maxZoom={22}
+          tileSize={256}
         />
         <InvalidateSize />
         <MapController mapRef={mapRef} />
