@@ -154,8 +154,7 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [card, setCard] = useState<CardState | null>(null)
-  const [nearbyPois, setNearbyPois] = useState<NearbyPoi[]>([])
-  const [loadingNearby, setLoadingNearby] = useState(false)
+  const [nearbyPois] = useState<NearbyPoi[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchOpen, setSearchOpen] = useState(false)
@@ -200,27 +199,6 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
     setCard({ lat, lng, name, address: result.display_name, color: PIN_COLORS[0], geocoding: false, pin: null })
   }
 
-  async function handleBrowseNearby() {
-    if (!mapRef.current) return
-    setLoadingNearby(true)
-    const { lat, lng } = mapRef.current.getCenter()
-    try {
-      const q = `[out:json][timeout:10];(node[amenity~"restaurant|cafe|bar|fast_food|pub|bakery|ice_cream"](around:500,${lat},${lng});node[tourism~"attraction|museum|viewpoint"](around:500,${lat},${lng}););out body 30;`
-      const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: q })
-      const data = await res.json()
-      const pois: NearbyPoi[] = (data.elements as any[])
-        .filter((el) => el.tags?.name)
-        .slice(0, 30)
-        .map((el) => ({
-          id: el.id, lat: el.lat, lng: el.lon,
-          name: el.tags.name,
-          type: el.tags.amenity || el.tags.tourism || 'place',
-        }))
-      setNearbyPois(pois)
-    } catch { /* silently fail */ } finally {
-      setLoadingNearby(false)
-    }
-  }
 
   function handleSave() {
     if (!card || !card.name.trim()) return
@@ -315,23 +293,6 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
         )}
       </div>
 
-      {/* Browse Nearby button */}
-      <div style={{ position: 'absolute', top: 80, right: 10, zIndex: 2000, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button
-          onClick={handleBrowseNearby}
-          style={{ background: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          {loadingNearby ? '⏳' : '📍'} Nearby
-        </button>
-        {nearbyPois.length > 0 && (
-          <button
-            onClick={() => setNearbyPois([])}
-            style={{ background: '#fff', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, color: '#888', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
-          >
-            Clear
-          </button>
-        )}
-      </div>
 
       {/* Backdrop — closes card and search dropdown */}
       {(card || searchOpen) && (
