@@ -1,6 +1,6 @@
 /**
  * Web map — Leaflet + OpenStreetMap.
- * Self-contained: reverse geocoding, pin create/edit/delete, nearby POI browsing.
+ * Self-contained: place search, reverse geocoding, pin create/edit/delete, nearby POI browsing.
  * Uses HTML overlays instead of React Native Modals for reliable web behaviour.
  */
 import 'leaflet/dist/leaflet.css'
@@ -31,18 +31,27 @@ const NEARBY_COLOR: Record<string, string> = {
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
-const makeUserIcon = (color: string) =>
-  L.divIcon({
+// Bigger pin with drop-shadow + a colored label tag above it showing the place name
+const makeUserIcon = (color: string, title: string) => {
+  const label = title
+    ? `<div style="position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:5px;background:${color};color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 6px rgba(0,0,0,0.25);letter-spacing:0.2px">${title}</div>`
+    : ''
+  return L.divIcon({
     className: '',
-    html: `<svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 0C6.27 0 0 6.27 0 14c0 9.625 14 24 14 24S28 23.625 28 14C28 6.27 21.73 0 14 0z"
-        fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="14" cy="14" r="5" fill="#fff"/>
-    </svg>`,
-    iconSize: [28, 38],
-    iconAnchor: [14, 38],
-    popupAnchor: [0, -38],
+    html: `
+      <div style="position:relative;display:inline-block">
+        ${label}
+        <svg width="36" height="48" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.45))">
+          <path d="M14 0C6.27 0 0 6.27 0 14c0 9.625 14 24 14 24S28 23.625 28 14C28 6.27 21.73 0 14 0z"
+            fill="${color}" stroke="#fff" stroke-width="2.5"/>
+          <circle cx="14" cy="14" r="5.5" fill="#fff"/>
+        </svg>
+      </div>`,
+    iconSize: [36, 48],
+    iconAnchor: [18, 48],
+    popupAnchor: [0, -48],
   })
+}
 
 const makeNearbyIcon = (color: string) =>
   L.divIcon({
@@ -71,6 +80,14 @@ interface NearbyPoi {
   type: string
 }
 
+interface SearchResult {
+  place_id: number
+  lat: string
+  lon: string
+  display_name: string
+  name: string
+}
+
 interface Props {
   pins: Pin[]
   onMapTap: (lat: number, lng: number) => void   // kept for native compat, unused on web
@@ -97,7 +114,7 @@ function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) =
   return null
 }
 
-// ── Reverse geocode via Nominatim ─────────────────────────────────────────────
+// ── Nominatim helpers ─────────────────────────────────────────────────────────
 async function reverseGeocode(lat: number, lng: number): Promise<{ name: string; address: string }> {
   try {
     const res = await fetch(
@@ -119,20 +136,39 @@ async function reverseGeocode(lat: number, lng: number): Promise<{ name: string;
   }
 }
 
+async function searchPlaces(q: string): Promise<SearchResult[]> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1`,
+      { headers: { 'User-Agent': 'Flappit/1.0', 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8' } },
+    )
+    return await res.json()
+  } catch {
+    return []
+  }
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }: Props) {
   const mapRef = useRef<L.Map | null>(null)
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [card, setCard] = useState<CardState | null>(null)
   const [nearbyPois, setNearbyPois] = useState<NearbyPoi[]>([])
   const [loadingNearby, setLoadingNearby] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchOpen, setSearchOpen] = useState(false)
 
   async function handleMapClick(lat: number, lng: number) {
+    setSearchOpen(false)
     setCard({ lat, lng, name: '', address: '', color: PIN_COLORS[0], geocoding: true, pin: null })
     const { name, address } = await reverseGeocode(lat, lng)
     setCard((prev) => prev ? { ...prev, name, address, geocoding: false } : null)
   }
 
   function handlePinClick(pin: Pin) {
+    setSearchOpen(false)
     setCard({ lat: pin.lat, lng: pin.lng, name: pin.title, address: '', color: pin.color, geocoding: false, pin })
   }
 
@@ -140,6 +176,28 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
     const label = poi.type.replace(/_/g, ' ')
     const capitalized = label.charAt(0).toUpperCase() + label.slice(1)
     setCard({ lat: poi.lat, lng: poi.lng, name: poi.name, address: capitalized, color: PIN_COLORS[0], geocoding: false, pin: null })
+  }
+
+  function handleSearchInput(val: string) {
+    setSearchQuery(val)
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    if (!val.trim()) { setSearchResults([]); setSearchOpen(false); return }
+    searchTimeout.current = setTimeout(async () => {
+      const results = await searchPlaces(val)
+      setSearchResults(results)
+      setSearchOpen(results.length > 0)
+    }, 400)
+  }
+
+  function handleSearchSelect(result: SearchResult) {
+    const lat = parseFloat(result.lat)
+    const lng = parseFloat(result.lon)
+    const name = result.name || result.display_name.split(',')[0].trim()
+    setSearchQuery('')
+    setSearchResults([])
+    setSearchOpen(false)
+    mapRef.current?.flyTo([lat, lng], 15, { animate: true, duration: 1 })
+    setCard({ lat, lng, name, address: result.display_name, color: PIN_COLORS[0], geocoding: false, pin: null })
   }
 
   async function handleBrowseNearby() {
@@ -198,7 +256,7 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
           <Marker
             key={pin.id}
             position={[pin.lat, pin.lng]}
-            icon={makeUserIcon(pin.color)}
+            icon={makeUserIcon(pin.color, pin.title)}
             eventHandlers={{ click: (e) => { e.originalEvent.stopPropagation(); handlePinClick(pin) } }}
           />
         ))}
@@ -212,6 +270,48 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
           />
         ))}
       </MapContainer>
+
+      {/* Search bar */}
+      <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 2000, width: 280 }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: 12, boxShadow: '0 2px 10px rgba(0,0,0,0.2)', padding: '9px 14px', gap: 8 }}>
+          <span style={{ fontSize: 15 }}>🔍</span>
+          <input
+            value={searchQuery}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+            placeholder="Search places…"
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent', color: '#1a1a1a' }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false) }}
+              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, padding: 0, color: '#bbb', lineHeight: 1 }}
+            >✕</button>
+          )}
+        </div>
+        {searchOpen && searchResults.length > 0 && (
+          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', marginTop: 6, overflow: 'hidden' }}>
+            {searchResults.map((r, i) => (
+              <button
+                key={r.place_id}
+                onClick={() => handleSearchSelect(r)}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left',
+                  padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer',
+                  borderBottom: i < searchResults.length - 1 ? '1px solid #f0f0f0' : 'none',
+                }}
+              >
+                <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: 13, marginBottom: 2 }}>
+                  {r.name || r.display_name.split(',')[0].trim()}
+                </div>
+                <div style={{ color: '#aaa', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {r.display_name}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Browse Nearby button */}
       <div style={{ position: 'absolute', top: 80, right: 10, zIndex: 2000, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -231,9 +331,9 @@ export default function FlappitMap({ pins, onSavePin, onUpdatePin, onDeletePin }
         )}
       </div>
 
-      {/* Backdrop */}
-      {card && (
-        <div onClick={() => setCard(null)} style={{ position: 'absolute', inset: 0, zIndex: 1500 }} />
+      {/* Backdrop — closes card and search dropdown */}
+      {(card || searchOpen) && (
+        <div onClick={() => { setCard(null); setSearchOpen(false) }} style={{ position: 'absolute', inset: 0, zIndex: 1500 }} />
       )}
 
       {/* Place card */}
